@@ -14,6 +14,7 @@ class GoalsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false,
       child: Column(
         children: [
           // Header
@@ -23,6 +24,8 @@ class GoalsScreen extends StatelessWidget {
           Expanded(
             child: _buildGoalsList(context).animate(delay: 100.ms).fadeIn(duration: 300.ms),
           ),
+          
+          const SizedBox(height: 100), // Clear space for floating nav
         ],
       ),
     );

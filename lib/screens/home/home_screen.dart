@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:crystal_navigation_bar/crystal_navigation_bar.dart';
 
 import '../../theme/colors.dart';
 import '../../providers/auth_provider.dart';
@@ -49,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
+      extendBody: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: isDark 
@@ -60,28 +62,6 @@ class _HomeScreenState extends State<HomeScreen> {
           children: _screens,
         ),
       ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryStart.withOpacity(0.4),
-              blurRadius: 12,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {
-            _showAddOptions(context);
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(Icons.add, size: 28),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildBottomNavBar(),
     );
   }
@@ -90,76 +70,54 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: Colors.transparent,
+              color: isDark 
+                  ? Colors.black.withOpacity(0.15)
+                  : Colors.white.withOpacity(0.3),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark 
-                    ? Colors.white.withOpacity(0.2)
-                    : Colors.white.withOpacity(0.7),
-                width: 1.5,
+                color: isDark
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.black.withOpacity(0.1),
+                width: 1,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                  blurRadius: 20,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 4),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _NavIcon(
+                  icon: Icons.home_rounded,
+                  isSelected: _currentIndex == 0,
+                  onTap: () => setState(() => _currentIndex = 0),
+                ),
+                _NavIcon(
+                  icon: Icons.receipt_long_rounded,
+                  isSelected: _currentIndex == 1,
+                  onTap: () => setState(() => _currentIndex = 1),
+                ),
+                _NavIcon(
+                  icon: Icons.add_rounded,
+                  isSelected: _currentIndex == 2,
+                  onTap: () => _showAddOptions(context),
+                ),
+                _NavIcon(
+                  icon: Icons.flag_rounded,
+                  isSelected: _currentIndex == 3,
+                  onTap: () => setState(() => _currentIndex = 3),
+                ),
+                _NavIcon(
+                  icon: Icons.person_rounded,
+                  isSelected: _currentIndex == 4,
+                  onTap: () => setState(() => _currentIndex = 4),
                 ),
               ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _NavBarItem(
-                          icon: Icons.home_rounded,
-                          label: 'Beranda',
-                          isSelected: _currentIndex == 0,
-                          onTap: () => setState(() => _currentIndex = 0),
-                        ),
-                        _NavBarItem(
-                          icon: Icons.receipt_long_rounded,
-                          label: 'Transaksi',
-                          isSelected: _currentIndex == 1,
-                          onTap: () => setState(() => _currentIndex = 1),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 56), // Space for FAB
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _NavBarItem(
-                          icon: Icons.flag_rounded,
-                          label: 'Goals',
-                          isSelected: _currentIndex == 3,
-                          onTap: () => setState(() => _currentIndex = 3),
-                        ),
-                        _NavBarItem(
-                          icon: Icons.person_rounded,
-                          label: 'Profil',
-                          isSelected: _currentIndex == 4,
-                          onTap: () => setState(() => _currentIndex = 4),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),
@@ -233,6 +191,38 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavIcon extends StatelessWidget {
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _NavIcon({
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        child: Icon(
+          icon,
+          color: isSelected 
+              ? AppColors.primaryStart 
+              : (isDark ? AppColors.textMuted : Colors.grey.shade700),
+          size: 24,
         ),
       ),
     );
@@ -343,38 +333,46 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            _buildHeader(context).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1),
-            
-            const SizedBox(height: 24),
-            
-            // Balance Card
-            const BalanceCard().animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
-            
-            const SizedBox(height: 20),
-            
-            // Budget Tracker
-            const BudgetTrackerWidget().animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
-            
-            const SizedBox(height: 20),
-            
-            // Quick Stats
-            _buildQuickStats(context).animate(delay: 300.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
-            
-            const SizedBox(height: 24),
-            
-            // Recent Transactions
-            _buildRecentTransactions(context).animate(delay: 400.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
-            
-            const SizedBox(height: 80), // Space for FAB
-          ],
-        ),
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 100), // Clear space for floating nav
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(context).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1),
+                
+                const SizedBox(height: 24),
+                
+                // Balance Card
+                const BalanceCard().animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                
+                const SizedBox(height: 20),
+                
+                // Budget Tracker
+                const BudgetTrackerWidget().animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                
+                const SizedBox(height: 20),
+                
+                // Quick Stats
+                _buildQuickStats(context).animate(delay: 300.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                
+                const SizedBox(height: 24),
+                
+                // Recent Transactions
+                _buildRecentTransactions(context).animate(delay: 400.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                
+                const SizedBox(height: 80), // Space for FAB
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

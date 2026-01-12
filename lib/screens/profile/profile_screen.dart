@@ -40,10 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     return SafeArea(
+      bottom: false,
       child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: screenWidth > 600 ? 40 : 20,
-          vertical: 20,
+        padding: EdgeInsets.only(
+          left: screenWidth > 600 ? 40 : 20,
+          right: screenWidth > 600 ? 40 : 20,
+          top: 20,
+          bottom: 120, // Clear space for floating nav
         ),
         child: Center(
           child: ConstrainedBox(
