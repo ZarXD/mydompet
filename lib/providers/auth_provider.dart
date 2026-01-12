@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -159,6 +161,38 @@ class AuthProvider extends ChangeNotifier {
   void setGeminiApiKey(String apiKey) {
     _geminiApiKey = apiKey;
     notifyListeners();
+  }
+  
+  // Upload Profile Photo to Supabase Storage
+  Future<bool> uploadProfilePhoto(String filePath) async {
+    if (currentUser == null) return false;
+    
+    try {
+      final fileName = '${currentUser!.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      // Upload to Supabase Storage
+      await SupabaseConfig.client.storage
+          .from('avatars')
+          .upload(fileName, File(filePath));
+      
+      // Get public URL
+      final avatarUrl = SupabaseConfig.client.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+      
+      // Update user metadata
+      await SupabaseConfig.client.auth.updateUser(
+        UserAttributes(
+          data: {'avatar_url': avatarUrl},
+        ),
+      );
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error uploading photo: $e');
+      return false;
+    }
   }
   
   // Logout

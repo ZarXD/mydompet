@@ -14,7 +14,6 @@ import '../../providers/budget_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../utils/formatters.dart';
-import '../../providers/notification_provider.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -33,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final authProvider = context.watch<AuthProvider>();
     final budgetProvider = context.watch<BudgetProvider>();
     final transactionProvider = context.watch<TransactionProvider>();
-    final notificationProvider = context.watch<NotificationProvider>();
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Calculate total savings
@@ -92,6 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileHeader(BuildContext context, AuthProvider authProvider, double totalSavings) {
     // Determine user tier based on savings
     final tier = _getUserTier(totalSavings);
+    final avatarUrl = authProvider.avatarUrl;
     
     return GlassmorphicCard(
       child: Column(
@@ -105,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 90,
                   height: 90,
                   decoration: BoxDecoration(
-                    gradient: _profileImage == null ? tier.gradient : null,
+                    gradient: avatarUrl == null ? tier.gradient : null,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -114,16 +113,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         spreadRadius: 3,
                       ),
                     ],
-                    image: _profileImage != null
+                    image: avatarUrl != null
                         ? DecorationImage(
-                            image: kIsWeb
-                                ? NetworkImage(_profileImage!.path)
-                                : FileImage(File(_profileImage!.path)) as ImageProvider,
+                            image: NetworkImage(avatarUrl),
                             fit: BoxFit.cover,
                           )
                         : null,
                   ),
-                  child: _profileImage == null
+                  child: avatarUrl == null
                       ? Center(
                           child: Text(
                             (authProvider.userName ?? 'U')[0].toUpperCase(),
@@ -396,9 +393,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSettingsList(BuildContext context) {
-    final notificationProvider = context.watch<NotificationProvider>();
-    final isEnabled = notificationProvider.notificationsEnabled;
-    
     return GlassmorphicCard(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -408,31 +402,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Export Data',
             subtitle: 'CSV, PDF',
             onTap: () => _showExportDialog(context),
-          ),
-          const Divider(color: AppColors.border, height: 1),
-          _SettingsTile(
-            icon: Icons.notifications_outlined,
-            label: 'Notifikasi',
-            subtitle: isEnabled ? 'Reminder 20:00' : 'Nonaktif',
-            trailing: Switch(
-              value: isEnabled,
-              onChanged: (value) async {
-                await notificationProvider.toggleNotifications(value);
-                if (!context.mounted) return;
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(value 
-                      ? 'Reminder harian diaktifkan pukul 20:00' 
-                      : 'Notifikasi dinonaktifkan'
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: AppColors.info,
-                  ),
-                );
-              },
-              activeColor: AppColors.primaryStart,
-            ),
           ),
           const Divider(color: AppColors.border, height: 1),
           _SettingsTile(
@@ -1066,11 +1035,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         imageQuality: 85,
                       );
                       if (image != null) {
-                        setState(() => _profileImage = image);
+                        if (!context.mounted) return;
+                        final authProvider = context.read<AuthProvider>();
+                        final success = await authProvider.uploadProfilePhoto(image.path);
+                        if (!context.mounted) return;
+                        
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Foto profil diperbarui!'),
-                            backgroundColor: AppColors.income,
+                          SnackBar(
+                            content: Text(success 
+                              ? 'Foto profil berhasil diperbarui!' 
+                              : 'Gagal mengupload foto'
+                            ),
+                            backgroundColor: success ? AppColors.income : AppColors.expense,
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -1092,11 +1068,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         imageQuality: 85,
                       );
                       if (image != null) {
-                        setState(() => _profileImage = image);
+                        if (!context.mounted) return;
+                        final authProvider = context.read<AuthProvider>();
+                        final success = await authProvider.uploadProfilePhoto(image.path);
+                        if (!context.mounted) return;
+                        
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Foto profil diperbarui!'),
-                            backgroundColor: AppColors.income,
+                          SnackBar(
+                            content: Text(success 
+                              ? 'Foto profil berhasil diperbarui!' 
+                              : 'Gagal mengupload foto'
+                            ),
+                            backgroundColor: success ? AppColors.income : AppColors.expense,
                             behavior: SnackBarBehavior.floating,
                           ),
                         );

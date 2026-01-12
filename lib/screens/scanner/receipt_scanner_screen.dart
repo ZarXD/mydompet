@@ -613,11 +613,11 @@ Return ONLY the JSON object, no additional text.'''
               TextField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
                   labelText: 'Nominal',
                   prefixText: 'Rp ',
-                  prefixIcon: Icon(Icons.attach_money, color: AppColors.textMuted),
+                  prefixIcon: Icon(Icons.attach_money, color: Theme.of(context).textTheme.bodySmall?.color),
                 ),
               ),
               const SizedBox(height: 16),
@@ -625,10 +625,10 @@ Return ONLY the JSON object, no additional text.'''
               // Description
               TextField(
                 controller: _descController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
                   labelText: 'Keterangan',
-                  prefixIcon: Icon(Icons.description_outlined, color: AppColors.textMuted),
+                  prefixIcon: Icon(Icons.description_outlined, color: Theme.of(context).textTheme.bodySmall?.color),
                 ),
               ),
               const SizedBox(height: 16),
@@ -637,10 +637,10 @@ Return ONLY the JSON object, no additional text.'''
               DropdownButtonFormField<String>(
                 value: _category,
                 dropdownColor: AppColors.surface,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
                   labelText: 'Kategori',
-                  prefixIcon: Icon(Icons.category_outlined, color: AppColors.textMuted),
+                  prefixIcon: Icon(Icons.category_outlined, color: Theme.of(context).textTheme.bodySmall?.color),
                 ),
                 items: transactionCategories.map((cat) {
                   return DropdownMenuItem(

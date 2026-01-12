@@ -52,8 +52,8 @@ class TransactionTile extends StatelessWidget {
                 children: [
                   Text(
                     transaction.description,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                       fontWeight: FontWeight.w500,
                       fontSize: 15,
                     ),
@@ -65,8 +65,8 @@ class TransactionTile extends StatelessWidget {
                     children: [
                       Text(
                         transaction.category,
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                           fontSize: 12,
                         ),
                       ),
@@ -75,15 +75,15 @@ class TransactionTile extends StatelessWidget {
                         width: 4,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.textMuted,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         Formatters.formatTransactionDate(transaction.date),
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodySmall?.color,
                           fontSize: 12,
                         ),
                       ),

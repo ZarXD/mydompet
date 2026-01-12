@@ -64,12 +64,12 @@ class TransactionsScreen extends StatelessWidget {
           // Search Bar
           TextField(
             onChanged: (value) => transactionProvider.setSearchQuery(value),
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
             decoration: InputDecoration(
               hintText: 'Cari transaksi...',
-              prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.search, color: Theme.of(context).textTheme.bodySmall?.color),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: Theme.of(context).colorScheme.surface,
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -182,23 +182,17 @@ class TransactionsScreen extends StatelessWidget {
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: AppColors.textMuted.withOpacity(0.5),
+              color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Tidak ada transaksi',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 16,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Transaksi yang kamu tambahkan\nakan muncul di sini',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
           ],
@@ -312,7 +306,7 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? chipColor.withOpacity(0.2) : AppColors.surface,
+          color: isSelected ? chipColor.withOpacity(0.2) : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? chipColor : AppColors.border,
@@ -321,7 +315,7 @@ class _FilterChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? chipColor : AppColors.textSecondary,
+            color: isSelected ? chipColor : Theme.of(context).textTheme.bodyMedium?.color,
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),

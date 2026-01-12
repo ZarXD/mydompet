@@ -54,10 +54,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+        decoration: BoxDecoration(
+          gradient: isDark 
+              ? AppColors.backgroundGradient 
+              : AppColors.backgroundGradientLight,
         ),
         child: Center(
           child: Column(
@@ -111,9 +115,7 @@ class _SplashScreenState extends State<SplashScreen> {
               // Tagline
               Text(
                 'Kelola Keuanganmu dengan Cerdas',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
               )
                   .animate(delay: 500.ms)
                   .fadeIn(duration: 500.ms)

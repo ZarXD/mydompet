@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -87,50 +89,78 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNavBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surface : AppColors.surfaceWhite,
-        border: Border(
-          top: BorderSide(
-            color: isDark 
-                ? AppColors.border.withOpacity(0.5)
-                : AppColors.borderLightGray,
-            width: 1,
-          ),
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavBarItem(
-                icon: Icons.home_rounded,
-                label: 'Beranda',
-                isSelected: _currentIndex == 0,
-                onTap: () => setState(() => _currentIndex = 0),
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark 
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.white.withOpacity(0.7),
+                width: 1.5,
               ),
-              _NavBarItem(
-                icon: Icons.receipt_long_rounded,
-                label: 'Transaksi',
-                isSelected: _currentIndex == 1,
-                onTap: () => setState(() => _currentIndex = 1),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _NavBarItem(
+                          icon: Icons.home_rounded,
+                          label: 'Beranda',
+                          isSelected: _currentIndex == 0,
+                          onTap: () => setState(() => _currentIndex = 0),
+                        ),
+                        _NavBarItem(
+                          icon: Icons.receipt_long_rounded,
+                          label: 'Transaksi',
+                          isSelected: _currentIndex == 1,
+                          onTap: () => setState(() => _currentIndex = 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 56), // Space for FAB
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _NavBarItem(
+                          icon: Icons.flag_rounded,
+                          label: 'Goals',
+                          isSelected: _currentIndex == 3,
+                          onTap: () => setState(() => _currentIndex = 3),
+                        ),
+                        _NavBarItem(
+                          icon: Icons.person_rounded,
+                          label: 'Profil',
+                          isSelected: _currentIndex == 4,
+                          onTap: () => setState(() => _currentIndex = 4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 56), // Space for FAB
-              _NavBarItem(
-                icon: Icons.flag_rounded,
-                label: 'Goals',
-                isSelected: _currentIndex == 3,
-                onTap: () => setState(() => _currentIndex = 3),
-              ),
-              _NavBarItem(
-                icon: Icons.person_rounded,
-                label: 'Profil',
-                isSelected: _currentIndex == 4,
-                onTap: () => setState(() => _currentIndex = 4),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -532,12 +562,12 @@ class _DashboardTab extends StatelessWidget {
                     Icon(
                       Icons.receipt_long_outlined,
                       size: 48,
-                      color: AppColors.textMuted.withOpacity(0.5),
+                      color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'Belum ada transaksi',
-                      style: TextStyle(color: AppColors.textMuted),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
                 ),

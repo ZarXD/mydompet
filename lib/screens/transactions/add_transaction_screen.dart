@@ -292,11 +292,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         children: [
           TextFormField(
             controller: _descController,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+            decoration: InputDecoration(
               labelText: 'Keterangan',
               hintText: 'Contoh: Makan siang',
-              prefixIcon: Icon(Icons.description_outlined, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.description_outlined, color: Theme.of(context).textTheme.bodySmall?.color),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -308,11 +308,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _notesController,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+            decoration: InputDecoration(
               labelText: 'Catatan (opsional)',
               hintText: 'Tambahkan catatan...',
-              prefixIcon: Icon(Icons.note_outlined, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.note_outlined, color: Theme.of(context).textTheme.bodySmall?.color),
             ),
             maxLines: 2,
           ),
