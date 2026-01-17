@@ -209,7 +209,7 @@ class TransactionsScreen extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 120), // Extra bottom space for nav bar
       itemCount: groupedTransactions.length,
       itemBuilder: (context, index) {
         final dateKey = groupedTransactions.keys.elementAt(index);

@@ -1,12 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:html' as html show AnchorElement, Blob, Url;
 
 import '../../theme/colors.dart';
 import '../../providers/auth_provider.dart';
@@ -81,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildLogoutButton(context, authProvider)
                     .animate(delay: 250.ms).fadeIn(duration: 300.ms).slideY(begin: 0.1),
                 
-                const SizedBox(height: 80),
+                const SizedBox(height: 120), // Extra space for nav bar
               ],
             ),
           ),
@@ -710,82 +716,342 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showExportDialog(BuildContext context) {
+    String selectedFilter = 'all';  // 'all', '7d', '30d', '90d'
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Export Data',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Pilih format export',
-              style: TextStyle(color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 24),
-            Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: _ExportOptionCard(
-                    icon: Icons.table_chart_outlined,
-                    label: 'CSV',
-                    description: 'Spreadsheet',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Data berhasil diekspor ke CSV!'),
-                          backgroundColor: AppColors.income,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _ExportOptionCard(
-                    icon: Icons.picture_as_pdf_outlined,
-                    label: 'PDF',
-                    description: 'Laporan',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Data berhasil diekspor ke PDF!'),
-                          backgroundColor: AppColors.income,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                const SizedBox(height: 24),
+                Text(
+                  'Export Data',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+                
+                // Time range filter
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
                   ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedFilter,
+                      isExpanded: true,
+                      icon: const Icon(Icons.arrow_drop_down),
+                      items: const [
+                        DropdownMenuItem(value: 'all', child: Text('Semua Waktu')),
+                        DropdownMenuItem(value: '7d', child: Text('7 Hari Terakhir')),
+                        DropdownMenuItem(value: '30d', child: Text('30 Hari Terakhir')),
+                        DropdownMenuItem(value: '90d', child: Text('90 Hari Terakhir')),
+                      ],
+                      onChanged: (String? value) {
+                        if (value != null) {
+                          setState(() {
+                            selectedFilter = value;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ExportOptionCard(
+                        icon: Icons.table_chart_outlined,
+                        label: 'CSV',
+                        description: 'Spreadsheet',
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _exportToCSV(context, selectedFilter);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _ExportOptionCard(
+                        icon: Icons.picture_as_pdf_outlined,
+                        label: 'PDF',
+                        description: 'Laporan',
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await _exportToPDF(context, selectedFilter);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
+  }
+
+  Future<void> _exportToCSV(BuildContext context, [String filter = 'all']) async {
+    try {
+      final transactionProvider = context.read<TransactionProvider>();
+      var transactions = transactionProvider.transactions;
+      
+      // Apply time filter
+      final now = DateTime.now();
+      if (filter == '7d') {
+        transactions = transactions.where((t) => t.date.isAfter(now.subtract(const Duration(days: 7)))).toList();
+      } else if (filter == '30d') {
+        transactions = transactions.where((t) => t.date.isAfter(now.subtract(const Duration(days: 30)))).toList();
+      } else if (filter == '90d') {
+        transactions = transactions.where((t) => t.date.isAfter(now.subtract(const Duration(days: 90)))).toList();
+      }
+      
+      // Prepare CSV data
+      List<List<dynamic>> rows = [
+        ['Tanggal', 'Kategori', 'Deskripsi', 'Jumlah', 'Tipe'],
+      ];
+      
+      for (var transaction in transactions) {
+        rows.add([
+          Formatters.formatDate(transaction.date),
+          transaction.category,
+          transaction.description,
+          transaction.amount,
+          transaction.type.toUpperCase(),
+        ]);
+      }
+      
+      // Convert to CSV string
+      String csv = const ListToCsvConverter().convert(rows);
+      
+      if (kIsWeb) {
+        // Web: trigger download
+        final bytes = utf8.encode(csv);
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'mydompet_transactions.csv')
+          ..click();
+        html.Url.revokeObjectUrl(url);
+      } else {
+        // Mobile: save to downloads
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/mydompet_transactions.csv');
+        await file.writeAsString(csv);
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data berhasil diekspor ke CSV!'),
+            backgroundColor: AppColors.income,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error exporting CSV: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal mengekspor CSV'),
+            backgroundColor: AppColors.expense,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportToPDF(BuildContext context, [String filter = 'all']) async {
+    try {
+      final transactionProvider = context.read<TransactionProvider>();
+      var transactions = transactionProvider.transactions;
+      final authProvider = context.read<AuthProvider>();
+      
+      // Apply time filter
+      final now = DateTime.now();
+      String filterLabel = 'Semua Waktu';
+      if (filter == '7d') {
+        transactions = transactions.where((t) => t.date.isAfter(now.subtract(const Duration(days: 7)))).toList();
+        filterLabel = '7 Hari Terakhir';
+      } else if (filter == '30d') {
+        transactions = transactions.where((t) => t.date.isAfter(now.subtract(const Duration(days: 30)))).toList();
+        filterLabel = '30 Hari Terakhir';
+      } else if (filter == '90d') {
+        transactions = transactions.where((t) => t.date.isAfter(now.subtract(const Duration(days: 90)))).toList();
+        filterLabel = '90 Hari Terakhir';
+      }
+      
+      final pdf = pw.Document();
+      
+      // Calculate totals
+      double totalIncome = transactions
+          .where((t) => t.type == 'income')
+          .fold(0, (sum, t) => sum + t.amount);
+      double totalExpense = transactions
+          .where((t) => t.type == 'expense')
+          .fold(0, (sum, t) => sum + t.amount);
+      
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'MyDompet - Laporan Transaksi',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text('User: ${authProvider.userName ?? "Anonymous"}'),
+                pw.Text('Tanggal: ${Formatters.formatDate(DateTime.now())}'),
+                pw.Text('Periode: $filterLabel', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 16),
+                
+                // Summary
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(),
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Ringkasan', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 8),
+                      pw.Text('Total Pemasukan: ${Formatters.formatCurrency(totalIncome)}'),
+                      pw.Text('Total Pengeluaran: ${Formatters.formatCurrency(totalExpense)}'),
+                      pw.Text('Saldo: ${Formatters.formatCurrency(totalIncome - totalExpense)}'),
+                    ],
+                  ),
+                ),
+                
+                pw.SizedBox(height: 16),
+                pw.Text('Detail Transaksi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16)),
+                pw.SizedBox(height: 8),
+                
+                // Transactions table
+                pw.Table(
+                  border: pw.TableBorder.all(),
+                  children: [
+                    pw.TableRow(
+                      decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text('Tanggal', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text('Kategori', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text('Deskripsi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text('Jumlah', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    ...transactions.map((t) => pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text(Formatters.formatDate(t.date), style: const pw.TextStyle(fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text(t.category, style: const pw.TextStyle(fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text(t.description, style: const pw.TextStyle(fontSize: 10)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(4),
+                          child: pw.Text(
+                            Formatters.formatCurrency(t.amount),
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
+                        ),
+                      ],
+                    )),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      );
+      
+      final bytes = await pdf.save();
+      
+      if (kIsWeb) {
+        // Web: trigger download
+        final blob = html.Blob([bytes], 'application/pdf');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', 'mydompet_report.pdf')
+          ..click();
+        html.Url.revokeObjectUrl(url);
+      } else {
+        // Mobile: save to downloads
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/mydompet_report.pdf');
+        await file.writeAsBytes(bytes);
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Laporan PDF berhasil diekspor!'),
+            backgroundColor: AppColors.income,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error exporting PDF: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal mengekspor PDF'),
+            backgroundColor: AppColors.expense,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _showSecurityDialog(BuildContext context) {
@@ -1587,12 +1853,27 @@ class _SettingsTile extends StatelessWidget {
     final theme = Theme.of(context);
     
     return ListTile(
-      leading: Icon(icon, color: theme.textTheme.bodyMedium?.color),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(
+          icon,
+          color: theme.textTheme.bodyMedium?.color,
+          size: 22, // Consistent icon size
+        ),
+      ),
       title: Text(
         label,
         style: TextStyle(
           color: theme.textTheme.titleMedium?.color,
           fontSize: 15,
+          fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: subtitle != null
@@ -1607,6 +1888,7 @@ class _SettingsTile extends StatelessWidget {
       trailing: trailing ?? Icon(
         Icons.chevron_right,
         color: theme.textTheme.bodySmall?.color,
+        size: 20,
       ),
       onTap: onTap,
     );

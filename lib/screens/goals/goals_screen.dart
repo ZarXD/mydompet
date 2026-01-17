@@ -24,8 +24,6 @@ class GoalsScreen extends StatelessWidget {
           Expanded(
             child: _buildGoalsList(context).animate(delay: 100.ms).fadeIn(duration: 300.ms),
           ),
-          
-          const SizedBox(height: 100), // Clear space for floating nav
         ],
       ),
     );
@@ -108,7 +106,7 @@ class GoalsScreen extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 120), // Extra bottom space for nav bar
       itemCount: goals.length,
       itemBuilder: (context, index) {
         return Padding(

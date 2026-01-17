@@ -339,7 +339,7 @@ class _DashboardTab extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 100), // Clear space for floating nav
+        padding: const EdgeInsets.only(bottom: 120), // Extra space for floating nav
         children: [
           Padding(
             padding: const EdgeInsets.all(20),
