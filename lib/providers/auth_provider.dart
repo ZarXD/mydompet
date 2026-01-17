@@ -56,14 +56,16 @@ class AuthProvider extends ChangeNotifier {
     try {
       final response = await _supabase
           .from('users')
-          .select('gemini_api_key')
+          .select('gemini_api_key, name')
           .eq('id', _user!.id)
           .single();
       
       if (response['gemini_api_key'] != null) {
         _geminiApiKey = response['gemini_api_key'];
-        notifyListeners();
       }
+      
+      // Name is already in user metadata, but we can sync if needed
+      notifyListeners();
     } catch (e) {
       print('Error fetching user data: $e');
     }
@@ -157,6 +159,32 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = 'Google Sign-In gagal: $e';
       _isLoading = false;
       notifyListeners();
+      return false;
+    }
+  }
+  
+  // Update User Name
+  Future<bool> updateUserName(String newName) async {
+    try {
+      // Update users table
+      await SupabaseConfig.client.from('users').update({
+        'name': newName,
+      }).eq('id', currentUser!.id);
+      
+      // Update auth metadata
+      await SupabaseConfig.client.auth.updateUser(
+        UserAttributes(
+          data: {'full_name': newName}, // Use 'full_name' for consistency with signUp
+        ),
+      );
+      
+      // Reload user data
+      // This will also update the currentUser getter
+      await SupabaseConfig.client.auth.refreshSession();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error updating user name: $e');
       return false;
     }
   }
