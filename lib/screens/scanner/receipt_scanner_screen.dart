@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../../theme/colors.dart';
 import '../../models/transaction.dart';
@@ -91,21 +92,14 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=$apiKey'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [
-            {
-              'parts': [
-                {
-                  'inlineData': {
-                    'mimeType': 'image/jpeg',
-                    'data': _imageBase64,
-                  }
-                },
-                {
-                  'text': '''Analyze this receipt image and extract the following information in JSON format:
+      // Initialize Gemini model with SDK
+      final model = GenerativeModel(
+        model: 'gemini-2.0-flash-lite',
+        apiKey: apiKey,
+      );
+
+      // Create prompt
+      final prompt = '''Analyze this receipt image and extract the following information in JSON format:
 {
   "merchant": "name of the store/merchant",
   "amount": "total amount (numbers only, no currency symbol)",
@@ -119,38 +113,34 @@ Guidelines:
 - Use Indonesian language for merchant name if it's Indonesian
 - If you can't find specific information, use reasonable defaults
 
-Return ONLY the JSON object, no additional text.'''
-                }
-              ]
-            }
-          ]
-        }),
-      );
+Return ONLY the JSON object, no additional text.''';
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'] ?? '';
+      // Generate content with image using SDK
+      final imageBytes = base64Decode(_imageBase64!);
+      final content = [
+        Content.multi([
+          DataPart('image/jpeg', imageBytes),
+          TextPart(prompt),
+        ])
+      ];
+
+      final response = await model.generateContent(content);
+      final text = response.text ?? '';
+
+      // Parse JSON from response
+      final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(text);
+      if (jsonMatch != null) {
+        final extractedJson = jsonDecode(jsonMatch.group(0)!);
         
-        // Parse JSON from response
-        final jsonMatch = RegExp(r'\{[\s\S]*\}').firstMatch(text);
-        if (jsonMatch != null) {
-          final extractedJson = jsonDecode(jsonMatch.group(0)!);
-          
-          setState(() {
-            _extractedData = extractedJson;
-            _amountController.text = extractedJson['amount']?.toString().replaceAll(RegExp(r'[.,]'), '') ?? '';
-            _descController.text = extractedJson['merchant'] ?? '';
-            _category = extractedJson['category'] ?? 'Lainnya';
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'Gagal mengekstrak data dari respons AI';
-          });
-        }
-      } else {
-        final error = jsonDecode(response.body);
         setState(() {
-          _errorMessage = error['error']?['message'] ?? 'Gagal memproses gambar';
+          _extractedData = extractedJson;
+          _amountController.text = extractedJson['amount']?.toString().replaceAll(RegExp(r'[.,]'), '') ?? '';
+          _descController.text = extractedJson['merchant'] ?? '';
+          _category = extractedJson['category'] ?? 'Lainnya';
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'Gagal mengekstrak data dari respons AI';
         });
       }
     } catch (e) {

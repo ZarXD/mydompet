@@ -462,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _SettingsTile(
             icon: Icons.info_outline,
             label: 'Tentang Aplikasi',
-            subtitle: 'v1.0.0-beta.7',
+            subtitle: 'v1.0.0-rc.1',
             onTap: () => _showAboutDialog(context),
           ),
         ],
@@ -1286,7 +1286,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'v1.0.0',
+              'v1.0.0-rc.1',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
