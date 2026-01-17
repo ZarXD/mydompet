@@ -462,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _SettingsTile(
             icon: Icons.info_outline,
             label: 'Tentang Aplikasi',
-            subtitle: 'v1.0.0',
+            subtitle: 'v1.0.0-beta.7',
             onTap: () => _showAboutDialog(context),
           ),
         ],
@@ -493,6 +493,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showEditProfileDialog(BuildContext context, AuthProvider authProvider) {
     final nameController = TextEditingController(text: authProvider.userName ?? '');
+    final emailController = TextEditingController(text: authProvider.userEmail ?? '');
     
     showModalBottomSheet(
       context: context,
@@ -539,12 +540,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: TextEditingController(text: authProvider.userEmail ?? ''),
-              enabled: false,
-              style: const TextStyle(color: AppColors.textMuted),
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
               decoration: const InputDecoration(
                 labelText: 'Email',
                 prefixIcon: Icon(Icons.email_outlined, color: AppColors.textMuted),
+                helperText: 'Link konfirmasi dikirim jika email diubah',
+                helperMaxLines: 2,
               ),
             ),
             const SizedBox(height: 24),
@@ -567,15 +570,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      final newName = nameController.text.trim();
+                      final newEmail = emailController.text.trim();
+                      
+                      // Validation
+                      if (newName.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Nama tidak boleh kosong'),
+                            backgroundColor: AppColors.expense,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      if (newEmail.isEmpty || !newEmail.contains('@')) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Email tidak valid'),
+                            backgroundColor: AppColors.expense,
+                          ),
+                        );
+                        return;
+                      }
+                      
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profil berhasil diperbarui!'),
-                          backgroundColor: AppColors.income,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                      
+                      // Update name if changed
+                      bool nameSuccess = true;
+                      if (newName != authProvider.userName) {
+                        nameSuccess = await authProvider.updateUserName(newName);
+                      }
+                      
+                      // Update email if changed
+                      bool emailSuccess = true;
+                      bool emailChanged = false;
+                      if (newEmail != authProvider.userEmail) {
+                        emailSuccess = await authProvider.updateUserEmail(newEmail);
+                        emailChanged = true;
+                      }
+                      
+                      // Show feedback
+                      if (context.mounted) {
+                        String message;
+                        Color bgColor;
+                        
+                        if (nameSuccess && emailSuccess) {
+                          if (emailChanged) {
+                            message = 'Profil diupdate! Cek email untuk konfirmasi';
+                          } else {
+                            message = 'Profil berhasil diperbarui!';
+                          }
+                          bgColor = AppColors.income;
+                        } else {
+                          message = 'Gagal mengupdate profil';
+                          bgColor = AppColors.expense;
+                        }
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(message),
+                            backgroundColor: bgColor,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryStart,
@@ -1171,28 +1232,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               leading: const Icon(Icons.book_outlined, color: AppColors.info),
               title: const Text('Panduan Pengguna'),
               subtitle: const Text('Pelajari cara menggunakan MyDompet'),
+              trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textMuted),
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Panduan akan segera tersedia!'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                _launchUrl('https://mydompet-site.vercel.app/#guide');
               },
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline, color: AppColors.info),
               title: const Text('FAQ'),
               subtitle: const Text('Pertanyaan yang sering diajukan'),
+              trailing: const Icon(Icons.open_in_new, size: 18, color: AppColors.textMuted),
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('FAQ akan segera tersedia!'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                _launchUrl('https://mydompet-site.vercel.app/#faq');
               },
             ),
           ],

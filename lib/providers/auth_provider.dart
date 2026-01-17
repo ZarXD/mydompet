@@ -50,23 +50,31 @@ class AuthProvider extends ChangeNotifier {
   
   // Fetch user data from Supabase
   Future<void> _fetchUserData() async {
-    if (currentUser == null) return;
+    print('🔵 _fetchUserData: Starting...');
+    if (currentUser == null) {
+      print('❌ _fetchUserData: No current user');
+      return;
+    }
     
     try {
+      print('🔵 _fetchUserData: Fetching for user ${currentUser!.id}');
       final response = await SupabaseConfig.client
-          .from('users')
-          .select('gemini_api_key, name')
+          .from('profiles')
+          .select('gemini_api_key, full_name')
           .eq('id', currentUser!.id)
           .single();
       
+      print('✅ _fetchUserData: Response received: $response');
+      
       if (response['gemini_api_key'] != null) {
         _geminiApiKey = response['gemini_api_key'];
+        print('✅ _fetchUserData: API key loaded');
       }
       
       // Name is already in user metadata, but we can sync if needed
       notifyListeners();
     } catch (e) {
-      print('Error fetching user data: $e');
+      print('❌ _fetchUserData ERROR: $e');
     }
   }
   
@@ -164,26 +172,60 @@ class AuthProvider extends ChangeNotifier {
   
   // Update User Name
   Future<bool> updateUserName(String newName) async {
+    print('🔵 updateUserName: Starting with name: $newName');
+    print('🔵 updateUserName: Current user ID: ${currentUser?.id}');
+    
     try {
       // Update users table
-      await SupabaseConfig.client.from('users').update({
-        'name': newName,
+      print('🔵 updateUserName: Updating users table...');
+      await SupabaseConfig.client.from('profiles').update({
+        'full_name': newName,
       }).eq('id', currentUser!.id);
+      print('✅ updateUserName: Users table updated');
       
       // Update auth metadata
+      print('🔵 updateUserName: Updating auth metadata...');
       await SupabaseConfig.client.auth.updateUser(
         UserAttributes(
           data: {'full_name': newName}, // Use 'full_name' for consistency with signUp
         ),
       );
+      print('✅ updateUserName: Auth metadata updated');
       
       // Reload user data
-      // This will also update the currentUser getter
+      print('🔵 updateUserName: Refreshing session...');
       await SupabaseConfig.client.auth.refreshSession();
+      print('✅ updateUserName: Session refreshed');
+      
       notifyListeners();
+      print('✅ updateUserName: SUCCESS');
       return true;
     } catch (e) {
-      print('Error updating user name: $e');
+      print('❌ updateUserName ERROR: $e');
+      print('❌ Error type: ${e.runtimeType}');
+      return false;
+    }
+  }
+  
+  // Update User Email
+  Future<bool> updateUserEmail(String newEmail) async {
+    print('🔵 updateUserEmail: Starting with email: $newEmail');
+    print('🔵 updateUserEmail: Current user ID: ${currentUser?.id}');
+    
+    try {
+      print('🔵 updateUserEmail: Updating auth email...');
+      await SupabaseConfig.client.auth.updateUser(
+        UserAttributes(email: newEmail),
+      );
+      print('✅ updateUserEmail: Email update initiated');
+      print('ℹ️  User will receive confirmation email at $newEmail');
+      
+      notifyListeners();
+      print('✅ updateUserEmail: SUCCESS');
+      return true;
+    } catch (e) {
+      print('❌ updateUserEmail ERROR: $e');
+      print('❌ Error type: ${e.runtimeType}');
       return false;
     }
   }
@@ -215,18 +257,24 @@ class AuthProvider extends ChangeNotifier {
   
   // Set Gemini API Key
   Future<void> setGeminiApiKey(String apiKey) async {
+    print('🔵 setGeminiApiKey: Starting...');
     _geminiApiKey = apiKey;
     notifyListeners();
     
     // Persist to Supabase
     if (currentUser != null) {
       try {
-        await SupabaseConfig.client.from('users').update({
+        print('🔵 setGeminiApiKey: Saving to Supabase for user ${currentUser!.id}');
+        await SupabaseConfig.client.from('profiles').update({
           'gemini_api_key': apiKey,
         }).eq('id', currentUser!.id);
+        print('✅ setGeminiApiKey: Saved successfully');
       } catch (e) {
-        print('Error saving Gemini API key: $e');
+        print('❌ setGeminiApiKey ERROR: $e');
+        print('❌ Error type: ${e.runtimeType}');
       }
+    } else {
+      print('❌ setGeminiApiKey: No current user');
     }
   }
   
