@@ -35,29 +35,28 @@ class AuthProvider extends ChangeNotifier {
   static String get mobileRedirectUrl => '$_redirectScheme://$_redirectHost';
   
   AuthProvider() {
-    _user = _supabase.auth.currentUser;
-    
-    _supabase.auth.onAuthStateChange.listen((data) {
-      _user = data.session?.user;
-      if (_user != null) {
+    SupabaseConfig.client.auth.onAuthStateChange.listen((data) {
+      if (data.session?.user != null) {
         _fetchUserData();
       }
       notifyListeners();
     });
     
     // Load user data on init if logged in
-    if (_user != null) {
+    if (currentUser != null) {
       _fetchUserData();
     }
   }
   
   // Fetch user data from Supabase
   Future<void> _fetchUserData() async {
+    if (currentUser == null) return;
+    
     try {
-      final response = await _supabase
+      final response = await SupabaseConfig.client
           .from('users')
           .select('gemini_api_key, name')
-          .eq('id', _user!.id)
+          .eq('id', currentUser!.id)
           .single();
       
       if (response['gemini_api_key'] != null) {
@@ -220,11 +219,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     
     // Persist to Supabase
-    if (_user != null) {
+    if (currentUser != null) {
       try {
-        await _supabase.from('users').update({
+        await SupabaseConfig.client.from('users').update({
           'gemini_api_key': apiKey,
-        }).eq('id', _user!.id);
+        }).eq('id', currentUser!.id);
       } catch (e) {
         print('Error saving Gemini API key: $e');
       }
