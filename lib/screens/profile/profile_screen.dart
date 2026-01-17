@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -124,7 +125,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                     image: avatarUrl != null
                         ? DecorationImage(
-                            image: NetworkImage(avatarUrl),
+                            image: CachedNetworkImageProvider(
+                              avatarUrl,
+                              maxHeight: 200,
+                              maxWidth: 200,
+                            ),
                             fit: BoxFit.cover,
                           )
                         : null,
