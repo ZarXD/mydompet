@@ -66,6 +66,25 @@ class Formatters {
     return _shortDateFormat.format(date);
   }
   
+  /// Format date for home screen with both day label and date
+  static String formatHomeTransactionDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final transactionDate = DateTime(date.year, date.month, date.day);
+    final dateStr = _shortDateFormat.format(date);
+    
+    if (transactionDate == today) {
+      return 'Hari ini - $dateStr';
+    } else if (transactionDate == yesterday) {
+      return 'Kemarin - $dateStr';
+    } else if (now.difference(date).inDays < 7) {
+      final dayName = DateFormat('EEEE', 'id_ID').format(date);
+      return '$dayName - $dateStr';
+    }
+    return dateStr;
+  }
+  
   /// Format percentage
   static String formatPercentage(double value) {
     return '${(value * 100).toStringAsFixed(1)}%';

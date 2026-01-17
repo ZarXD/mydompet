@@ -13,6 +13,7 @@ import '../../providers/budget_provider.dart';
 import '../../widgets/balance_card.dart';
 import '../../widgets/budget_tracker.dart';
 import '../../widgets/transaction_tile.dart';
+import '../../widgets/home_transaction_tile.dart';
 import '../../widgets/glassmorphic_card.dart';
 import '../../utils/formatters.dart';
 import '../transactions/add_transaction_screen.dart';
@@ -577,7 +578,7 @@ class _DashboardTab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               children: recentTransactions
-                  .map((t) => TransactionTile(transaction: t))
+                  .map((t) => HomeTransactionTile(transaction: t))
                   .toList(),
             ),
           ),

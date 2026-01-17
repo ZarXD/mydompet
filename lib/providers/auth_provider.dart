@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
@@ -164,33 +165,57 @@ class AuthProvider extends ChangeNotifier {
   }
   
   // Upload Profile Photo to Supabase Storage
-  Future<bool> uploadProfilePhoto(String filePath) async {
-    if (currentUser == null) return false;
+  Future<bool> uploadProfilePhoto(XFile imageFile) async {
+    debugPrint('🔵 uploadProfilePhoto: Starting upload...');
+    
+    if (currentUser == null) {
+      debugPrint('🔴 uploadProfilePhoto: No current user!');
+      return false;
+    }
+    
+    debugPrint('🔵 uploadProfilePhoto: User ID = ${currentUser!.id}');
     
     try {
       final fileName = '${currentUser!.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      debugPrint('🔵 uploadProfilePhoto: File name = $fileName');
+      
+      // Read file as bytes (works on web and mobile)
+      final bytes = await imageFile.readAsBytes();
+      debugPrint('🔵 uploadProfilePhoto: Read ${bytes.length} bytes');
       
       // Upload to Supabase Storage
+      debugPrint('🔵 uploadProfilePhoto: Uploading to Supabase...');
       await SupabaseConfig.client.storage
           .from('avatars')
-          .upload(fileName, File(filePath));
+          .uploadBinary(fileName, bytes);
+      debugPrint('✅ uploadProfilePhoto: Upload successful!');
       
       // Get public URL
       final avatarUrl = SupabaseConfig.client.storage
           .from('avatars')
           .getPublicUrl(fileName);
+      debugPrint('🔵 uploadProfilePhoto: Avatar URL = $avatarUrl');
       
       // Update user metadata
+      debugPrint('🔵 uploadProfilePhoto: Updating user metadata...');
       await SupabaseConfig.client.auth.updateUser(
         UserAttributes(
           data: {'avatar_url': avatarUrl},
         ),
       );
+      debugPrint('✅ uploadProfilePhoto: User metadata updated!');
       
       notifyListeners();
       return true;
+    } on StorageException catch (e) {
+      debugPrint('🔴 uploadProfilePhoto: StorageException!');
+      debugPrint('🔴 Error: ${e.message}');
+      debugPrint('🔴 Status Code: ${e.statusCode}');
+      return false;
     } catch (e) {
-      debugPrint('Error uploading photo: $e');
+      debugPrint('🔴 uploadProfilePhoto: General Error!');
+      debugPrint('🔴 Error: $e');
+      debugPrint('🔴 Error type: ${e.runtimeType}');
       return false;
     }
   }

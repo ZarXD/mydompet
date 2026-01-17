@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'config/supabase_config.dart';
 import 'providers/auth_provider.dart';
@@ -21,6 +23,9 @@ void main() async {
       statusBarIconBrightness: Brightness.light,
     ),
   );
+  
+  // Initialize Indonesian locale for date formatting
+  await initializeDateFormatting('id_ID', null);
   
   // Initialize Supabase
   await SupabaseConfig.initialize();

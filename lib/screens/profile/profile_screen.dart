@@ -270,29 +270,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildBadgesSection(BuildContext context, double totalSavings, TransactionProvider transactionProvider) {
     final badges = _getEarnedBadges(totalSavings, transactionProvider);
+    final earnedCount = badges.where((b) => b.earned).length;
+    
+    // Sort: earned badges first, then locked
+    badges.sort((a, b) {
+      if (a.earned == b.earned) return 0;
+      return a.earned ? -1 : 1;
+    });
+    
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     
     return GlassmorphicCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.military_tech, color: AppColors.warning, size: 24),
-              const SizedBox(width: 10),
-              Text(
-                'Achievement Badges',
-                style: Theme.of(context).textTheme.titleMedium,
+      padding: EdgeInsets.zero,
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.warning, Colors.orange.shade700],
               ),
-            ],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.military_tech, color: Colors.white, size: 20),
           ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: badges.map((badge) => _BadgeItem(badge: badge)).toList(),
+          title: Text(
+            'Achievement Badges',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ],
+          subtitle: Text(
+            '$earnedCount/${badges.length} Terbuka',
+            style: TextStyle(
+              color: theme.textTheme.bodySmall?.color,
+              fontSize: 12,
+            ),
+          ),
+          children: [
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.85,
+              ),
+              itemCount: badges.length,
+              itemBuilder: (context, index) => _BadgeItem(badge: badges[index]),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -321,10 +354,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Gemini AI API Key',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).textTheme.titleMedium?.color,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
@@ -1025,67 +1058,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(
-                  child: _ImagePickerOption(
-                    icon: Icons.camera_alt,
-                    label: 'Kamera',
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final XFile? image = await _picker.pickImage(
-                        source: ImageSource.camera,
-                        maxWidth: 512,
-                        maxHeight: 512,
-                        imageQuality: 85,
-                      );
-                      if (image != null) {
-                        if (!context.mounted) return;
-                        final authProvider = context.read<AuthProvider>();
-                        final success = await authProvider.uploadProfilePhoto(image.path);
-                        if (!context.mounted) return;
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(success 
-                              ? 'Foto profil berhasil diperbarui!' 
-                              : 'Gagal mengupload foto'
+                // Camera option - hide on web
+                if (!kIsWeb) 
+                  Expanded(
+                    child: _ImagePickerOption(
+                      icon: Icons.camera_alt,
+                      label: 'Kamera',
+                      onTap: () async {
+                        try {
+                          // Get AuthProvider BEFORE closing modal
+                          debugPrint('📸 Camera: Getting AuthProvider...');
+                          final authProvider = context.read<AuthProvider>();
+                          
+                          Navigator.pop(context);
+                          debugPrint('📸 Camera: Picking image...');
+                          final XFile? image = await _picker.pickImage(
+                            source: ImageSource.camera,
+                            maxWidth: 512,
+                            maxHeight: 512,
+                            imageQuality: 85,
+                          );
+                          
+                          if (image == null) {
+                            debugPrint('📸 Camera: No image picked');
+                            return;
+                          }
+                          
+                          debugPrint('📸 Camera: Image picked: ${image.path}');
+                          setState(() => _profileImage = image);
+                          
+                          if (!mounted) {
+                            debugPrint('📸 Camera: Widget not mounted!');
+                            return;
+                          }
+                          
+                          // Upload to Supabase
+                          debugPrint('📸 Camera: Starting upload...');
+                          final success = await authProvider.uploadProfilePhoto(image);
+                          debugPrint('📸 Camera: Upload result = $success');
+                          
+                          if (!mounted) {
+                            debugPrint('📸 Camera: Widget not mounted after upload!');
+                            return;
+                          }
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(success
+                                  ? 'Foto profil berhasil diperbarui!'
+                                  : 'Gagal mengupload foto. Coba lagi.'),
+                              backgroundColor: success ? AppColors.income : AppColors.expense,
+                              behavior: SnackBarBehavior.floating,
                             ),
-                            backgroundColor: success ? AppColors.income : AppColors.expense,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    },
+                          );
+                        } catch (e, stackTrace) {
+                          debugPrint('📸 Camera: EXCEPTION!');
+                          debugPrint('📸 Error: $e');
+                          debugPrint('📸 Stack trace: $stackTrace');
+                          
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Error! Cek console untuk detail'),
+                                backgroundColor: AppColors.expense,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
+                if (!kIsWeb) const SizedBox(width: 16),
                 Expanded(
                   child: _ImagePickerOption(
                     icon: Icons.photo_library,
                     label: 'Galeri',
                     onTap: () async {
-                      Navigator.pop(context);
-                      final XFile? image = await _picker.pickImage(
-                        source: ImageSource.gallery,
-                        maxWidth: 512,
-                        maxHeight: 512,
-                        imageQuality: 85,
-                      );
-                      if (image != null) {
-                        if (!context.mounted) return;
+                      try {
+                        // Get references BEFORE closing modal
+                        debugPrint('🖼️ Gallery: Getting providers...');
                         final authProvider = context.read<AuthProvider>();
-                        final success = await authProvider.uploadProfilePhoto(image.path);
-                        if (!context.mounted) return;
+                        final messenger = ScaffoldMessenger.of(context);
                         
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        Navigator.pop(context);
+                        debugPrint('🖼️ Gallery: Picking image...');
+                        final XFile? image = await _picker.pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 512,
+                          maxHeight: 512,
+                          imageQuality: 85,
+                        );
+                        
+                        if (image == null) {
+                          debugPrint('🖼️ Gallery: No image picked');
+                          return;
+                        }
+                        
+                        debugPrint('🖼️ Gallery: Image picked: ${image.path}');
+                        setState(() => _profileImage = image);
+                        
+                        // Upload to Supabase
+                        debugPrint('🖼️ Gallery: Starting upload...');
+                        final success = await authProvider.uploadProfilePhoto(image);
+                        debugPrint('🖼️ Gallery: Upload result = $success');
+                        
+                        messenger.showSnackBar(
                           SnackBar(
-                            content: Text(success 
-                              ? 'Foto profil berhasil diperbarui!' 
-                              : 'Gagal mengupload foto'
-                            ),
+                            content: Text(success
+                                ? 'Foto profil berhasil diperbarui!'
+                                : 'Gagal mengupload foto. Coba lagi.'),
                             backgroundColor: success ? AppColors.income : AppColors.expense,
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
+                      } catch (e, stackTrace) {
+                        debugPrint('🖼️ Gallery: EXCEPTION!');
+                        debugPrint('🖼️ Error: $e');
+                        debugPrint('🖼️ Stack trace: $stackTrace');
                       }
                     },
                   ),
@@ -1174,70 +1264,193 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   List<Badge> _getEarnedBadges(double totalSavings, TransactionProvider transactionProvider) {
     List<Badge> badges = [];
+    final transactions = transactionProvider.transactions;
+    final goals = context.read<BudgetProvider>().goals;
     
-    // Savings badges
-    if (totalSavings >= 1000000) {
-      badges.add(Badge(
-        icon: Icons.savings,
-        name: 'First Million',
-        color: AppColors.income,
-        earned: true,
-      ));
-    }
-    if (totalSavings >= 10000000) {
-      badges.add(Badge(
-        icon: Icons.emoji_events,
-        name: '10 Juta Club',
-        color: Colors.amber,
-        earned: true,
-      ));
-    }
-    if (totalSavings >= 50000000) {
-      badges.add(Badge(
-        icon: Icons.workspace_premium,
-        name: 'Gold Status',
-        color: Colors.orange,
-        earned: true,
-      ));
-    }
+    // Calculate streak
+    int streak = _calculateStreak(transactions);
     
-    // Transaction badges
-    if (transactionProvider.transactions.length >= 10) {
-      badges.add(Badge(
-        icon: Icons.receipt_long,
-        name: 'Active User',
-        color: AppColors.info,
-        earned: true,
-      ));
-    }
-    if (transactionProvider.transactions.length >= 50) {
-      badges.add(Badge(
-        icon: Icons.auto_awesome,
-        name: 'Power User',
-        color: Colors.purple,
-        earned: true,
-      ));
-    }
+    // Calculate unique categories used
+    Set<String> usedCategories = transactions.map((t) => t.category).toSet();
     
-    // Add locked badges
-    if (!badges.any((b) => b.name == 'First Million')) {
-      badges.add(Badge(
-        icon: Icons.savings,
-        name: 'First Million',
-        color: Colors.grey,
-        earned: false,
-      ));
-    }
-    if (!badges.any((b) => b.name == '10 Juta Club')) {
-      badges.add(Badge(
-        icon: Icons.emoji_events,
-        name: '10 Juta Club',
-        color: Colors.grey,
-        earned: false,
-      ));
-    }
+    // Savings Milestone Badges
+    badges.add(Badge(
+      icon: Icons.savings,
+      name: 'First Million',
+      color: AppColors.income,
+      earned: totalSavings >= 1000000,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.emoji_events,
+      name: '10 Juta Club',
+      color: Colors.amber,
+      earned: totalSavings >= 10000000,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.workspace_premium,
+      name: 'Gold Status',
+      color: Colors.orange,
+      earned: totalSavings >= 50000000,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.diamond,
+      name: '100M Club',
+      color: Colors.cyan,
+      earned: totalSavings >= 100000000,
+    ));
+    
+    // Transaction Count Badges
+    badges.add(Badge(
+      icon: Icons.receipt_long,
+      name: 'Active User',
+      color: AppColors.info,
+      earned: transactions.length >= 10,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.auto_awesome,
+      name: 'Power User',
+      color: Colors.purple,
+      earned: transactions.length >= 50,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.star_rounded,
+      name: 'Century Club',
+      color: Colors.deepPurple,
+      earned: transactions.length >= 100,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.military_tech,
+      name: 'Elite Tracker',
+      color: Colors.indigo,
+      earned: transactions.length >= 500,
+    ));
+    
+    // Streak Badges
+    badges.add(Badge(
+      icon: Icons.local_fire_department,
+      name: '7-Day Streak',
+      color: Colors.orange,
+      earned: streak >= 7,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.whatshot,
+      name: '30-Day Streak',
+      color: Colors.deepOrange,
+      earned: streak >= 30,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.celebration,
+      name: '100-Day Streak',
+      color: Colors.red,
+      earned: streak >= 100,
+    ));
+    
+    // Goal Badges
+    final completedGoals = goals.where((g) => g.isCompleted).length;
+    
+    badges.add(Badge(
+      icon: Icons.flag_rounded,
+      name: 'First Goal',
+      color: AppColors.income,
+      earned: completedGoals >= 1,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.emoji_events_outlined,
+      name: 'Goal Master',
+      color: Colors.teal,
+      earned: completedGoals >= 5,
+    ));
+    
+    badges.add(Badge(
+      icon: Icons.stars,
+      name: 'Dream Achiever',
+      color: Colors.amber.shade700,
+      earned: goals.isNotEmpty && completedGoals == goals.length,
+    ));
+    
+    // Budget & Spending Badges
+    badges.add(Badge(
+      icon: Icons.account_balance_wallet,
+      name: 'Budget Master',
+      color: AppColors.primaryStart,
+      earned: goals.any((g) => g.targetAmount > 0),
+    ));
+    
+    // Calculate if user stayed under budget this month
+    final thisMonth = DateTime.now();
+    final monthTransactions = transactions.where((t) => 
+      t.date.year == thisMonth.year && t.date.month == thisMonth.month
+    );
+    final monthExpenses = monthTransactions
+      .where((t) => t.type == 'expense')
+      .fold<double>(0, (sum, t) => sum + t.amount);
+    final budget = context.read<BudgetProvider>().monthlyBudget;
+    
+    badges.add(Badge(
+      icon: Icons.trending_down,
+      name: 'Frugal Saver',
+      color: AppColors.income,
+      earned: budget > 0 && monthExpenses < budget,
+    ));
+    
+    // Category Explorer Badge
+    badges.add(Badge(
+      icon: Icons.explore,
+      name: 'Category Explorer',
+      color: Colors.blue,
+      earned: usedCategories.length >= 5,
+    ));
+    
+    // OCR Scanner Badge
+    badges.add(Badge(
+      icon: Icons.document_scanner,
+      name: 'Scanner Pro',
+      color: AppColors.secondaryStart,
+      earned: transactions.any((t) => t.description.contains('Scan')),
+    ));
+    
+    // Sort: earned badges first, then by name
+    badges.sort((a, b) {
+      if (a.earned != b.earned) return a.earned ? -1 : 1;
+      return a.name.compareTo(b.name);
+    });
     
     return badges;
+  }
+  
+  int _calculateStreak(List transactions) {
+    if (transactions.isEmpty) return 0;
+    
+    // Get unique dates
+    final dates = transactions
+      .map((t) => DateTime(t.date.year, t.date.month, t.date.day))
+      .toSet()
+      .toList()
+      ..sort((a, b) => b.compareTo(a)); // Sort descending
+    
+    int streak = 0;
+    DateTime current = DateTime.now();
+    DateTime checkDate = DateTime(current.year, current.month, current.day);
+    
+    for (var date in dates) {
+      if (date == checkDate || date == checkDate.subtract(const Duration(days: 1))) {
+        streak++;
+        checkDate = date.subtract(const Duration(days: 1));
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
   }
 }
 
@@ -1278,41 +1491,75 @@ class _BadgeItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Tooltip(
       message: badge.name,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: badge.earned
-              ? badge.color.withOpacity(0.15)
-              : Colors.grey.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          gradient: badge.earned
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    badge.color.withOpacity(0.2),
+                    badge.color.withOpacity(0.1),
+                  ],
+                )
+              : null,
+          color: !badge.earned
+              ? (isDark ? Colors.grey.withOpacity(0.08) : Colors.grey.withOpacity(0.04))
+              : null,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: badge.earned
-                ? badge.color.withOpacity(0.3)
-                : Colors.grey.withOpacity(0.2),
+                ? badge.color.withOpacity(0.4)
+                : Colors.grey.withOpacity(0.15),
+            width: 1.5,
           ),
+          boxShadow: badge.earned ? [
+            BoxShadow(
+              color: badge.color.withOpacity(0.15),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ] : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              badge.icon,
-              color: badge.earned ? badge.color : Colors.grey,
-              size: 28,
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: badge.earned
+                    ? badge.color.withOpacity(0.15)
+                    : Colors.grey.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                badge.icon,
+                color: badge.earned ? badge.color : Colors.grey.shade600,
+                size: 22,
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               badge.name,
               style: TextStyle(
-                color: badge.earned ? AppColors.textPrimary : Colors.grey,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+                color: badge.earned
+                    ? theme.textTheme.bodyMedium?.color
+                    : Colors.grey.shade600,
+                fontSize: 9.5,
+                fontWeight: badge.earned ? FontWeight.w600 : FontWeight.w500,
+                height: 1.1,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            if (!badge.earned)
-              const Icon(Icons.lock, size: 12, color: Colors.grey),
           ],
         ),
       ),
