@@ -92,7 +92,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey'),
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
