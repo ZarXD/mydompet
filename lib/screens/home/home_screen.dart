@@ -334,8 +334,7 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    
+    // Only rebuild when userName changes, not on every AuthProvider change
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -346,28 +345,28 @@ class _DashboardTab extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                _buildHeader(context).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1),
+                // Header with reduced animation
+                _buildHeader(context).animate().fadeIn(duration: 200.ms).slideY(begin: -0.1),
                 
                 const SizedBox(height: 24),
                 
-                // Balance Card
-                const BalanceCard().animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                // Balance Card - reduced animation
+                const BalanceCard().animate(delay: 50.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 20),
                 
-                // Budget Tracker
-                const BudgetTrackerWidget().animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                // Budget Tracker - reduced animation
+                const BudgetTrackerWidget().animate(delay: 100.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 20),
                 
-                // Quick Stats
-                _buildQuickStats(context).animate(delay: 300.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                // Quick Stats - reduced animation
+                _buildQuickStats(context).animate(delay: 150.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 24),
                 
-                // Recent Transactions
-                _buildRecentTransactions(context).animate(delay: 400.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                // Recent Transactions - reduced animation
+                _buildRecentTransactions(context).animate(delay: 200.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 80), // Space for FAB
               ],

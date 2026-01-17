@@ -101,22 +101,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 
                 // Header
-                _buildHeader().animate().fadeIn(duration: 500.ms).slideY(begin: -0.2),
+                _buildHeader().animate().fadeIn(duration: 250.ms).slideY(begin: -0.2),
                 
                 const SizedBox(height: 40),
                 
                 // Register Form
-                _buildRegisterForm().animate(delay: 200.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1),
+                _buildRegisterForm().animate(delay: 100.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 24),
                 
                 // Register Button
-                _buildRegisterButton().animate(delay: 400.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1),
+                _buildRegisterButton().animate(delay: 200.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 24),
                 
                 // Login Link
-                _buildLoginLink().animate(delay: 500.ms).fadeIn(duration: 500.ms),
+                _buildLoginLink().animate(delay: 250.ms).fadeIn(duration: 250.ms),
               ],
             ),
           ),

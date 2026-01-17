@@ -87,22 +87,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 40),
                 
                 // Logo and Title
-                _buildHeader().animate().fadeIn(duration: 500.ms).slideY(begin: -0.2),
+                _buildHeader().animate().fadeIn(duration: 250.ms).slideY(begin: -0.2),
                 
                 const SizedBox(height: 48),
                 
                 // Login Form
-                _buildLoginForm().animate(delay: 200.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1),
+                _buildLoginForm().animate(delay: 100.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 24),
                 
                 // Login Button
-                _buildLoginButton().animate(delay: 400.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1),
+                _buildLoginButton().animate(delay: 200.ms).fadeIn(duration: 250.ms).slideY(begin: 0.1),
                 
                 const SizedBox(height: 32),
                 
                 // Register Link
-                _buildRegisterLink().animate(delay: 500.ms).fadeIn(duration: 500.ms),
+                _buildRegisterLink().animate(delay: 250.ms).fadeIn(duration: 250.ms),
               ],
             ),
           ),
