@@ -912,6 +912,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       // Convert to CSV string
       String csv = const ListToCsvConverter().convert(rows);
+      final fileName = 'mydompet_transactions_${DateTime.now().millisecondsSinceEpoch}.csv';
       
       if (kIsWeb) {
         // Web: trigger download
@@ -919,31 +920,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final blob = html.Blob([bytes]);
         final url = html.Url.createObjectUrlFromBlob(blob);
         final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'mydompet_transactions.csv')
+          ..setAttribute('download', fileName)
           ..click();
         html.Url.revokeObjectUrl(url);
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Data berhasil diekspor ke CSV!'),
+              backgroundColor: AppColors.income,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
-        // Mobile: save to downloads
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/mydompet_transactions.csv');
+        // Android/iOS: save to Downloads folder
+        Directory? directory;
+        
+        if (Platform.isAndroid) {
+          // For Android, use Downloads folder
+          directory = Directory('/storage/emulated/0/Download');
+          
+          // Fallback to external storage if Downloads doesn't exist
+          if (!await directory.exists()) {
+            directory = await getExternalStorageDirectory();
+          }
+        } else {
+          // For iOS, use app documents
+          directory = await getApplicationDocumentsDirectory();
+        }
+        
+        if (directory == null) {
+          throw Exception('Could not find directory');
+        }
+        
+        final filePath = '${directory.path}/$fileName';
+        final file = File(filePath);
         await file.writeAsString(csv);
-      }
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data berhasil diekspor ke CSV!'),
-            backgroundColor: AppColors.income,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('CSV tersimpan di:\n${Platform.isAndroid ? "Download/$fileName" : filePath}'),
+              backgroundColor: AppColors.income,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error exporting CSV: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal mengekspor CSV'),
+          SnackBar(
+            content: Text('Gagal mengekspor CSV: $e'),
             backgroundColor: AppColors.expense,
             behavior: SnackBarBehavior.floating,
           ),
@@ -1081,30 +1112,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       
       final bytes = await pdf.save();
+      final fileName = 'mydompet_report_${DateTime.now().millisecondsSinceEpoch}.pdf';
       
       if (kIsWeb) {
         // Web: trigger download
         final blob = html.Blob([bytes], 'application/pdf');
         final url = html.Url.createObjectUrlFromBlob(blob);
         final anchor = html.AnchorElement(href: url)
-          ..setAttribute('download', 'mydompet_report.pdf')
+          ..setAttribute('download', fileName)
           ..click();
         html.Url.revokeObjectUrl(url);
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Laporan PDF berhasil diekspor!'),
+              backgroundColor: AppColors.income,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
-        // Mobile: save to downloads
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/mydompet_report.pdf');
+        // Android/iOS: save to Downloads folder
+        Directory? directory;
+        
+        if (Platform.isAndroid) {
+          directory = Directory('/storage/emulated/0/Download');
+          if (!await directory.exists()) {
+            directory = await getExternalStorageDirectory();
+          }
+        } else {
+          directory = await getApplicationDocumentsDirectory();
+        }
+        
+        if (directory == null) {
+          throw Exception('Could not find directory');
+        }
+        
+        final filePath = '${directory.path}/$fileName';
+        final file = File(filePath);
         await file.writeAsBytes(bytes);
-      }
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Laporan PDF berhasil diekspor!'),
-            backgroundColor: AppColors.income,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('PDF tersimpan di:\n${Platform.isAndroid ? "Download/$fileName" : filePath}'),
+              backgroundColor: AppColors.income,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error exporting PDF: $e');
