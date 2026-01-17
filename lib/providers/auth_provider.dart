@@ -35,10 +35,38 @@ class AuthProvider extends ChangeNotifier {
   static String get mobileRedirectUrl => '$_redirectScheme://$_redirectHost';
   
   AuthProvider() {
-    // Listen to auth state changes
-    SupabaseConfig.client.auth.onAuthStateChange.listen((data) {
+    _user = _supabase.auth.currentUser;
+    
+    _supabase.auth.onAuthStateChange.listen((data) {
+      _user = data.session?.user;
+      if (_user != null) {
+        _fetchUserData();
+      }
       notifyListeners();
     });
+    
+    // Load user data on init if logged in
+    if (_user != null) {
+      _fetchUserData();
+    }
+  }
+  
+  // Fetch user data from Supabase
+  Future<void> _fetchUserData() async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('gemini_api_key')
+          .eq('id', _user!.id)
+          .single();
+      
+      if (response['gemini_api_key'] != null) {
+        _geminiApiKey = response['gemini_api_key'];
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+    }
   }
   
   // Email & Password Login
@@ -159,9 +187,20 @@ class AuthProvider extends ChangeNotifier {
   }
   
   // Set Gemini API Key
-  void setGeminiApiKey(String apiKey) {
+  Future<void> setGeminiApiKey(String apiKey) async {
     _geminiApiKey = apiKey;
     notifyListeners();
+    
+    // Persist to Supabase
+    if (_user != null) {
+      try {
+        await _supabase.from('users').update({
+          'gemini_api_key': apiKey,
+        }).eq('id', _user!.id);
+      } catch (e) {
+        print('Error saving Gemini API key: $e');
+      }
+    }
   }
   
   // Upload Profile Photo to Supabase Storage
