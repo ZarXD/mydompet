@@ -12,7 +12,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:html' as html show AnchorElement, Blob, Url;
+import 'package:universal_html/html.dart' as html;
 
 import '../../theme/colors.dart';
 import '../../providers/auth_provider.dart';
